@@ -20,6 +20,7 @@ Also please create a new Discord bot and invite it to your server.
 2. `docker-compose up`
 3. Profit
 
+Do not forget to set `Server Members Intent` and `Message Content Intent` in the Bot Category of the Discord Developer Portal Bot Settings to get started.
 
 ## License
 MIT
