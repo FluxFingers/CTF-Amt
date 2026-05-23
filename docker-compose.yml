@@ -2,8 +2,9 @@ version: '3'
 
 services:
   fluxbot:
-    image: ghcr.io/fluxfingers/ctf-amt:latest
+    build: .
     restart: unless-stopped
     env_file: .env
     volumes:
       - "./ctfamt-db:/app/dbs"
+#    command: node /app/dist/main.js --setup
