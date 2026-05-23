@@ -4,15 +4,31 @@ import { read_db } from "./store"
 import { CTFAnnounce } from "./announcer"
 import slugify from "slugify"
 
-const createPad = async(name:string) => {
-    const res = await axios.post(`${process.env.PAD_URL}/new`, `${name}\n===\n`, {
-        headers: {
-            "Content-Type": "text/markdown"
-        }
-    })
-    const url = res.request.res.responseUrl
-    return url
-}
+
+const login = async (): Promise<string | null> => {
+    const { PAD_USERNAME, PAD_PASSWORD } = process.env;
+    if (!PAD_USERNAME || !PAD_PASSWORD) return null;
+    const res = await axios.post(`${process.env.PAD_URL}/login`, new URLSearchParams({ email: PAD_USERNAME, password: PAD_PASSWORD }).toString(), {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        timeout: 15000,
+        maxRedirects: 0,
+        validateStatus: (s) => s >= 200 && s < 400,
+    });
+    const setCookie = res.headers["set-cookie"];
+    if (!setCookie?.length) return null;
+    return setCookie.map((c: string) => c.split(";")[0]).join("; ");
+};
+const createPad = async (name: string): Promise<string> => {
+    const cookie = await login();
+    const headers: Record<string, string> = { "Content-Type": "text/markdown" };
+    if (cookie) headers["Cookie"] = cookie;
+    const res = await axios.post(`${process.env.PAD_URL}/new`, `${name}\n===\n`, { headers, timeout: 15000 });
+    return res.request.res.responseUrl;
+};
+const solved_emotes = (process.env.SOLVED_EMOTES ?? "🍉")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
 
 export const handle_solved = async(inter:CommandInteraction) => {
     const channel = await inter.guild?.channels.fetch(inter.channelId)
@@ -26,11 +42,12 @@ export const handle_solved = async(inter:CommandInteraction) => {
     const fnd = ctfs_currently.find((k) => k.category_id === channel.parentId)
     if(!fnd) {
         await inter.reply({content: "This channel is not a challenge channel!", ephemeral: true})
-        return 
+        return
     }
+    const emote = solved_emotes[Math.floor(Math.random() * solved_emotes.length)]
     if(!inter.replied) {
-        const msgx = await inter.reply({content: `🍉` , ephemeral: false, fetchReply: true})
-        await msgx.react("🍉")
+        const msgx = await inter.reply({content: `${emote}` , ephemeral: false, fetchReply: true})
+        await msgx.react(`${emote}`)
 
     }
     if(!channel.name.includes("solved-")) {

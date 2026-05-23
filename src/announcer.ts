@@ -124,10 +124,17 @@ export const handle_announce = async (inter: ChatInputCommandInteraction) => {
     }
 }
 
+const player_role_ids = (process.env.PLAYER_ROLE ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+
 export const handle_joinctf = async(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) => {
     const membr = await reaction.message.guild!.members.fetch(user.id)
     if(!membr) return;
-    if(!membr.roles.cache.has(process.env.PLAYER_ROLE as string) && !membr.roles.cache.has(process.env.FULL_MEMBER_ROLE_ID as string)) {
+    const has_player_role = player_role_ids.some((id) => membr.roles.cache.has(id))
+    const has_full_member = membr.roles.cache.has(process.env.FULL_MEMBER_ROLE_ID as string)
+    if(!has_player_role && !has_full_member) {
         try {
             await membr.send(process.env.NEWBIE_REACTED_ERROR ?? "You need the member role to join a CTF.")
         } catch(e) {
